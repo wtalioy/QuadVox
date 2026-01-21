@@ -1,0 +1,3 @@
+[submodule "src/generation/models/tts/third_party/Matcha-TTS"]
+	path = src/generation/models/tts/third_party/Matcha-TTS
+	url = https://github.com/shivammehta25/Matcha-TTS.git

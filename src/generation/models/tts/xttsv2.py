@@ -11,6 +11,6 @@ class XTTSv2(BaseTTS):
         assert self.model.synthesizer is not None, "TTS synthesizer is not initialized."
         self.sample_rate = int(self.model.synthesizer.output_sample_rate)
 
-    def infer(self, text: str, ref_audio: str, language="en", **kwargs):
-        wav = self.model.tts(text=text, speaker_wav=ref_audio, language=language)
+    def infer(self, text: str, prompt_wav: str, language="en", **kwargs):
+        wav = self.model.tts(text=text, speaker_wav=prompt_wav, language=language)
         return np.array(wav), self.sample_rate

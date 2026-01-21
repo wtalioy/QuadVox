@@ -1,6 +1,9 @@
 # Weights and checkpoints
 *.pt
 
+# cache files
+cache/
+
 # IDE and Editor specific files
 .vscode/
 .cursor/

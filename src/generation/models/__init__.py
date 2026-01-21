@@ -1,4 +1,4 @@
-from .tts import BaseTTS, TTS_MODEL_MAP
-from .vc import BaseVC, VC_MODEL_MAP
+from .tts import BaseTTS, get_tts_model, list_tts_models
+from .vc import BaseVC, get_vc_model, list_vc_models
 
-__all__ = ["BaseTTS", "TTS_MODEL_MAP", "BaseVC", "VC_MODEL_MAP"]
+__all__ = ["BaseTTS", "get_tts_model", "list_tts_models", "BaseVC", "get_vc_model", "list_vc_models"]

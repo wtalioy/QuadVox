@@ -1,22 +1,31 @@
+import importlib
 from .base import BaseRawSubset
-from .news import News
-from .podcast import Podcast
-from .movie import Movie
-from .phonecall import PhoneCall
-from .interview import Interview
-from .publicspeech import PublicSpeech
-from .partialfake import PartialFake
-from .noisyspeech import NoisySpeech
 
 RAW_SUBSET_MAP = {
-    "news": News,
-    "podcast": Podcast,
-    "movie": Movie,
-    "phonecall": PhoneCall,
-    "interview": Interview,
-    "publicspeech": PublicSpeech,
-    "partialfake": PartialFake,
-    "noisyspeech": NoisySpeech,
+    "news": "news:News",
+    "podcast": "podcast:Podcast",
+    "movie": "movie:Movie",
+    "phonecall": "phonecall:PhoneCall",
+    "interview": "interview:Interview",
+    "publicspeech": "publicspeech:PublicSpeech",
+    "partialfake": "partialfake:PartialFake",
+    "noisyspeech": "noisyspeech:NoisySpeech",
 }
 
-__all__ = ["BaseRawSubset", "RAW_SUBSET_MAP"]
+
+def get_raw_subset(name: str) -> type[BaseRawSubset]:
+    subset_path = RAW_SUBSET_MAP[name]
+    module_path, class_name = subset_path.split(":", 1)
+    module = importlib.import_module(f"{__name__}.{module_path}")
+    return getattr(module, class_name)
+
+
+def list_raw_subsets():
+    return list(RAW_SUBSET_MAP.keys())
+
+__all__ = [
+    "BaseRawSubset",
+    "RAW_SUBSET_MAP",
+    "get_raw_subset",
+    "list_raw_subsets",
+]

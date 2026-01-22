@@ -587,7 +587,6 @@ class IndexTTS2:
                     wav = self.bigvgan(vc_target.float()).squeeze().unsqueeze(0)
                     wav = wav.squeeze(1)
 
-                wav = torch.clamp(wav, -1.0, 1.0)
                 wav = torch.clamp(32767 * wav, -32767.0, 32767.0)
                 # wavs.append(wav[:, :-512])
                 wavs.append(wav.cpu())  # Store normalized version
@@ -600,11 +599,8 @@ class IndexTTS2:
         wavs = self.insert_interval_silence(wavs, sampling_rate=sampling_rate, interval_silence=interval_silence)
         wav = torch.cat(wavs, dim=1)
 
-        # convert to numpy array (normalized float32, suitable for soundfile)
-        wav = wav.cpu()  # to cpu
-        wav_data = wav.float().numpy().T  # Convert to numpy array (float32) and transpose
-        # Ensure values are in [-1.0, 1.0] range (clamp to prevent clipping)
-        wav_data = np.clip(wav_data, -1.0, 1.0)
+        wav = wav.cpu()
+        wav_data = wav.numpy().astype(np.int16).T
         
         if stream_return:
             return None

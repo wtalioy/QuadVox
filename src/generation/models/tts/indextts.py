@@ -19,13 +19,21 @@ class IndexTTS(BaseTTS):
         }
 
     def infer(self, text: str, prompt_wav: str, language="en", **kwargs):
-        return self.model.infer(text=text, spk_audio_prompt=prompt_wav)
+        audio = self.model.infer(text=text, spk_audio_prompt=prompt_wav)
+        if audio is None:
+            raise RuntimeError("No audio generated")
+        return audio, self.sample_rate
 
     def infer_emotion(self, text: str, emotion: str, prompt_wav: str, **kwargs):
         if emotion in self.emotion_ids:
             emotion_id = self.emotion_ids[emotion]
+            emo_vector = [0.0] * len(self.emotion_ids)
+            emo_vector[emotion_id] = 0.45
+        elif emotion == "neutral":
+            emo_vector = None
         else:
             raise ValueError(f"Emotion {emotion} not supported")
-        emo_vector = [0.0] * len(self.emotion_ids)
-        emo_vector[emotion_id] = 0.45
-        return self.model.infer(text=text, spk_audio_prompt=prompt_wav, emo_vector=emo_vector)
+        audio = self.model.infer(text=text, spk_audio_prompt=prompt_wav, emo_vector=emo_vector)
+        if audio is None:
+            raise RuntimeError("No audio generated")
+        return audio, self.sample_rate

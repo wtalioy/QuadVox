@@ -2,6 +2,7 @@ import sys
 sys.path.append('src/generation/models/tts/third_party/Matcha-TTS')
 import numpy as np
 from typing import Tuple
+from huggingface_hub import snapshot_download
 
 # Create module alias for cosyvoice imports BEFORE importing anything
 import importlib
@@ -19,12 +20,13 @@ from .base import BaseTTS
 
 
 class CosyVoice(BaseTTS):
-    def __init__(self, model_dir="cache/Fun-CosyVoice3-0.5B", *args, **kwargs):
-        self.model_name = "CosyVoice3"
+    def __init__(self, model_name, repo_id, *args, **kwargs):
+        self.model_name = model_name
         self.require_vc = False
         
         self.model = AutoModel(
-            model_dir=model_dir,
+            repo_id=repo_id,
+            cache_dir="cache/" + repo_id.split("/")[-1],
             fp16=False,
             load_trt=False,
             load_vllm=True
@@ -46,6 +48,8 @@ class CosyVoice(BaseTTS):
         speed: float = 1.0,
         **kwargs
     ) -> Tuple[np.ndarray, int]:
+        if self.model_name == "CosyVoice3":
+            prompt_text = f"You are a helpful assistant.<|endofprompt|>" + prompt_text
         audio_generator = self.model.inference_zero_shot(
             tts_text=text,
             prompt_text=prompt_text,
@@ -104,3 +108,12 @@ class CosyVoice(BaseTTS):
             return audio, self.sampling_rate
         else:
             raise RuntimeError("No audio generated")
+
+
+class CosyVoice3(CosyVoice):
+    def __init__(self, *args, **kwargs):
+        super().__init__(model_name="CosyVoice3", repo_id="FunAudioLLM/Fun-CosyVoice3-0.5B-2512", *args, **kwargs)
+
+class CosyVoice2(CosyVoice):
+    def __init__(self, *args, **kwargs):
+        super().__init__(model_name="CosyVoice2", repo_id="FunAudioLLM/CosyVoice2-0.5B", *args, **kwargs)

@@ -10,6 +10,7 @@ RAW_SUBSET_MAP = {
     "publicspeech": "publicspeech:PublicSpeech",
     "partialfake": "partialfake:PartialFake",
     "noisyspeech": "noisyspeech:NoisySpeech",
+    "emotional": "emotional:Emotional",
 }
 
 

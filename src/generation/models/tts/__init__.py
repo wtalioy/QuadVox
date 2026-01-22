@@ -13,6 +13,7 @@ TTS_MODEL_MAP = {
     "gpt4omini": "gpt4omini_tts:GPT4oMiniTTS",
     "indextts": "indextts:IndexTTS",
     "cosyvoice": "cosyvoice:CosyVoice",
+    "f5tts": "f5tts:F5TTS",
 }
 
 

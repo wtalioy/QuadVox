@@ -15,6 +15,7 @@ TTS_MODEL_MAP = {
     "cosyvoice": "cosyvoice:CosyVoice",
     "f5tts": "f5tts:F5TTS",
     "voxcpm": "voxcpm:VoxCPMTTS",
+    "sparktts": "sparktts:SparkTTS",
 }
 
 

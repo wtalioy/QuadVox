@@ -1,41 +1,24 @@
-_MODEL_IMPORTS = {
-    "Baseline": ".base",
-    "AASIST": ".aasist.aasist",
-    "AASIST_L": ".aasist.aasist",
-    "RAPT": ".rapt.rapt",
-    "Res_TSSDNet": ".TSSDNet.tssdnet",
-    "Inc_TSSDNet": ".TSSDNet.tssdnet",
-    "RawNet2": ".RawNet2.rawnet2",
-    "RawGAT_ST": ".RawGAT_ST.rawgat_st",
+import importlib
+from .base import Baseline
+
+BASELINE_MODEL_MAP = {
+    "aasist": "aasist.aasist:AASIST",
+    "aasist-l": "aasist.aasist:AASIST_L",
+    "rapt": "rapt.rapt:RAPT",
+    "res-tssdnet": "TSSDNet.tssdnet:Res_TSSDNet",
+    "inc-tssdnet": "TSSDNet.tssdnet:Inc_TSSDNet",
+    "rawnet2": "RawNet2.rawnet2:RawNet2",
+    "rawgat-st": "RawGAT_ST.rawgat_st:RawGAT_ST",
 }
 
-_MODEL_MAP = {
-    "aasist": "AASIST",
-    "aasist-l": "AASIST_L",
-    "rapt": "RAPT",
-    "res-tssdnet": "Res_TSSDNet",
-    "inc-tssdnet": "Inc_TSSDNet",
-    "rawnet2": "RawNet2",
-    "rawgat-st": "RawGAT_ST",
-}
 
-_cache = {}
+def get_baseline_model(name: str) -> type[Baseline]:
+    model_path = BASELINE_MODEL_MAP[name]
+    module_path, class_name = model_path.split(":", 1)
+    module = importlib.import_module(f"{__name__}.{module_path}")
+    return getattr(module, class_name)
 
+def list_baseline_models():
+    return list(BASELINE_MODEL_MAP.keys())
 
-def __getattr__(name):
-    if name == "BASELINE_MAP":
-        if "BASELINE_MAP" not in _cache:
-            _cache["BASELINE_MAP"] = {
-                key: getattr(__import__(_MODEL_IMPORTS[cls_name], fromlist=[cls_name], level=1), cls_name)
-                for key, cls_name in _MODEL_MAP.items()
-            }
-        return _cache["BASELINE_MAP"]
-    
-    if name in _MODEL_IMPORTS:
-        if name not in _cache:
-            _cache[name] = getattr(__import__(_MODEL_IMPORTS[name], fromlist=[name], level=1), name)
-        return _cache[name]
-    
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-__all__ = ["Baseline", "BASELINE_MAP"]
+__all__ = ["Baseline", "BASELINE_MODEL_MAP", "get_baseline_model", "list_baseline_models"]

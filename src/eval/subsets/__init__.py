@@ -1,49 +1,28 @@
-_MODEL_IMPORTS = {
-    "BaseSubset": ".base",
-    "PublicFigure": ".publicfigure",
-    "News": ".news",
-    "Podcast": ".podcast",
-    "PartialFake": ".partialfake",
-    "Audiobook": ".audiobook",
-    "NoisySpeech": ".noisyspeech",
-    "PhoneCall": ".phonecall",
-    "Interview": ".interview",
-    "PublicSpeech": ".publicspeech",
-    "Movie": ".movie",
-    "Emotional": ".emotional",
+import importlib
+from .base import BaseSubset
+
+SUBSET_MODEL_MAP = {
+    "publicfigure": "publicfigure:PublicFigure",
+    "news": "news:News",
+    "podcast": "podcast:Podcast",
+    "partialfake": "partialfake:PartialFake",
+    "audiobook": "audiobook:Audiobook",
+    "noisyspeech": "noisyspeech:NoisySpeech",
+    "phonecall": "phonecall:PhoneCall",
+    "interview": "interview:Interview",
+    "publicspeech": "publicspeech:PublicSpeech",
+    "movie": "movie:Movie",
+    "emotional": "emotional:Emotional",
 }
 
-_MODEL_MAP = {
-    "publicfigure": "PublicFigure",
-    "news": "News",
-    "podcast": "Podcast",
-    "partialfake": "PartialFake",
-    "audiobook": "Audiobook",
-    "noisyspeech": "NoisySpeech",
-    "phonecall": "PhoneCall",
-    "interview": "Interview",
-    "publicspeech": "PublicSpeech",
-    "movie": "Movie",
-    "emotional": "Emotional",
-}
 
-_cache = {}
+def get_subset_model(name: str) -> type[BaseSubset]:
+    model_path = SUBSET_MODEL_MAP[name]
+    module_path, class_name = model_path.split(":", 1)
+    module = importlib.import_module(f"{__name__}.{module_path}")
+    return getattr(module, class_name)
 
+def list_subset_models():
+    return list(SUBSET_MODEL_MAP.keys())
 
-def __getattr__(name):
-    if name == "SUBSET_MAP":
-        if "SUBSET_MAP" not in _cache:
-            _cache["SUBSET_MAP"] = {
-                key: getattr(__import__(_MODEL_IMPORTS[cls_name], fromlist=[cls_name], level=1), cls_name)
-                for key, cls_name in _MODEL_MAP.items()
-            }
-        return _cache["SUBSET_MAP"]
-    
-    if name in _MODEL_IMPORTS:
-        if name not in _cache:
-            _cache[name] = getattr(__import__(_MODEL_IMPORTS[name], fromlist=[name], level=1), name)
-        return _cache[name]
-    
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-__all__ = ["BaseSubset", "SUBSET_MAP"]
+__all__ = ["BaseSubset", "SUBSET_MODEL_MAP", "get_subset_model", "list_subset_models"]

@@ -263,14 +263,14 @@ class RAPT(Baseline):
         torch.manual_seed(self.seed)
         if not in_domain:
             dataset_name = "default"
-            ref_data, ref_labels = self._aggregate_data(*self._load_default(split="train", limit=self.ref_num))
+            ref_data, ref_labels = self._aggregate_data(*self._load_cross_dataset(split="train", limit=self.ref_num))
             default_ckpt = os.path.join(os.path.dirname(__file__), "ckpts", f"default_best.pt")
             if not os.path.exists(default_ckpt):
                 logger.info(f"Default model not found at {default_ckpt}, training from scratch")
-                train_real_data, train_fake_data = self._load_default(split="train", limit=8192+self.ref_num)
+                train_real_data, train_fake_data = self._load_cross_dataset(split="train", limit=8192+self.ref_num)
                 train_real_data, train_fake_data = train_real_data[self.ref_num:], train_fake_data[self.ref_num:]
                 train_data, train_labels = self._aggregate_data(train_real_data, train_fake_data)
-                eval_data, eval_labels = self._aggregate_data(*self._load_default(split="validation", limit=768))
+                eval_data, eval_labels = self._aggregate_data(*self._load_cross_dataset(split="validation", limit=768))
                 self.train(train_data, train_labels, eval_data, eval_labels, dataset_name="default", ref_data=ref_data, ref_labels=ref_labels, sr=sr, finetune_extractor=False)
         else:
             default_ckpt = os.path.join(os.path.dirname(__file__), "ckpts", f"{dataset_name}_best.pt")

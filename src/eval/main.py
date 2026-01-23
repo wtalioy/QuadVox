@@ -3,8 +3,8 @@ import argparse
 import warnings
 import torch
 from loguru import logger
-from .baselines import BASELINE_MAP
-from .subsets import SUBSET_MAP
+from .baselines import get_baseline_model, list_baseline_models
+from .subsets import get_subset_model, list_subset_models
 
 def display_results(results: dict, baseline: str, dataset: str):
     if isinstance(list(results.values())[0], dict): # PartialFake and NoisySpeech specific
@@ -19,8 +19,8 @@ def display_results(results: dict, baseline: str, dataset: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate baseline on dataset")
-    parser.add_argument("-b", "--baseline", type=str, nargs="+", default=["aasist", "aasist-l", "rawnet2", "res-tssdnet", "inc-tssdnet", "rawgat-st", "rapt"], help="Name of the baseline", choices=list(BASELINE_MAP.keys()))
-    parser.add_argument("-s", "--subset", type=str, nargs="+", default=["audiobook", "news", "podcast", "interview", "phonecall", "publicspeech", "publicfigure", "movie", "emotional"], help="Name of the subset", choices=list(SUBSET_MAP.keys()))
+    parser.add_argument("-b", "--baseline", type=str, nargs="+", default=["aasist", "aasist-l", "rawnet2", "res-tssdnet", "inc-tssdnet", "rawgat-st", "rapt"], help="Name of the baseline", choices=list_baseline_models())
+    parser.add_argument("-s", "--subset", type=str, nargs="+", default=["audiobook", "news", "podcast", "interview", "phonecall", "publicspeech", "publicfigure", "movie", "emotional"], help="Name of the subset", choices=list_subset_models())
     parser.add_argument("-m", "--mode", type=str, default="in", help="Mode of the evaluation", choices=["cross", "in"])
     parser.add_argument("--train_only", action="store_true", help="Train the baseline only")
     parser.add_argument("--eval_only", action="store_true", help="Evaluate the baseline only")
@@ -37,9 +37,9 @@ def main():
     
     for subset in args.subset:
         logger.info(f"Preparing {subset} ...")
-        subset = SUBSET_MAP[subset](**vars(args))
+        subset = get_subset_model(subset)(**vars(args))
         for baseline in args.baseline:
-            baseline = BASELINE_MAP[baseline](**vars(args))
+            baseline = get_baseline_model(baseline)(**vars(args))
             logger.info(f"Evaluating {baseline.name} on {subset.name} with metric: {args.metric} in {args.mode}-domain mode")
 
             results = None

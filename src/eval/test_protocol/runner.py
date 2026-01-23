@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Tuple
 import random
 from loguru import logger
 
-from ..baselines import BASELINE_MAP
-from ..subsets import SUBSET_MAP
+from ..baselines import get_baseline_model
+from ..subsets import get_subset_model
 from . import CrossLanguageTestConfig, TestConfig
 
 __all__ = ["TestRunner"]
@@ -39,7 +39,7 @@ class TestRunner:
                 kwargs = {"data_dir": self.data_dir}
                 if name == "phonecall" and subset is not None:
                     kwargs["subset"] = subset
-                self._subset_cache[key] = SUBSET_MAP[name](**kwargs)
+                self._subset_cache[key] = get_subset_model(name)(**kwargs)
             return self._subset_cache[key]
 
         combined_data: List[Any] = []
@@ -82,7 +82,7 @@ class TestRunner:
             logger.warning(f"No training data found for {train_subsets}")
             return None
 
-        baseline = BASELINE_MAP[baseline_name](device=self.device)
+        baseline = get_baseline_model(baseline_name)(device=self.device)
         ref_data, ref_labels = None, None
         if baseline.name == "RAPT":
             ref_num = baseline.ref_num * 2
@@ -116,7 +116,7 @@ class TestRunner:
         logger.info(f"Evaluating {baseline_name} on {test_subsets}")
 
         if len(test_subsets) == 1 and test_subsets[0] in ["partialfake", "noisyspeech"]:
-            subset = SUBSET_MAP[test_subsets[0]](data_dir=self.data_dir)
+            subset = get_subset_model(test_subsets[0])(data_dir=self.data_dir)
             return subset.evaluate(baseline, ["eer"], in_domain=True, expr_name=expr_name)
 
         test_data, test_labels = self._create_combined_subset(test_subsets, "test", subset, shuffle=False)

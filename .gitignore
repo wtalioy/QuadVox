@@ -1,6 +1,8 @@
 # Weights and checkpoints
 *.pt
 
+results/
+
 # cache files
 cache/
 

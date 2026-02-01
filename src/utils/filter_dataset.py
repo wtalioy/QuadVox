@@ -47,5 +47,5 @@ if __name__ == "__main__":
                     shutil.move(audio_paths[j].replace("real", "fake"), f"{audio_paths[j].replace('real', 'fake')}.backup")
             else:
                 new_meta_data.append(item)
-    with open(os.path.join(args.data_dir, "meta_filtered.json"), "w") as f:
+    with open(os.path.join(args.subset_dir, "meta_filtered.json"), "w") as f:
         json.dump(new_meta_data, f, indent=2, ensure_ascii=False)

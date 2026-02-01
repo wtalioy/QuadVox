@@ -10,7 +10,7 @@ class Voxtral:
         self.processor = AutoProcessor.from_pretrained("mistralai/Voxtral-Mini-3B-2507")
 
     def transcribe(self, audio_paths: List[str], language: str = "en") -> List[str]:
-        inputs = self.processor.apply_transcrition_request(language=language, audio=audio_paths, model_id="mistralai/Voxtral-Mini-3B-2507")
+        inputs = self.processor.apply_transcription_request(language=language, audio=audio_paths, model_id="mistralai/Voxtral-Mini-3B-2507")
         inputs = inputs.to(self.device, dtype=torch.bfloat16)
         outputs = self.model.generate(**inputs, max_new_tokens=500)
         decoded_outputs = self.processor.batch_decode(outputs[:, inputs.input_ids.shape[1]:], skip_special_tokens=True)

@@ -9,6 +9,8 @@ BASELINE_MODEL_MAP = {
     "inc-tssdnet": "TSSDNet.tssdnet:Inc_TSSDNet",
     "rawnet2": "RawNet2.rawnet2:RawNet2",
     "rawgat-st": "RawGAT_ST.rawgat_st:RawGAT_ST",
+    "rawformer": "rawformer.rawformer:Rawformer",
+    "whisper-specrnet": "deepfake_whisper.whisper_features:WhisperSpecRNet",
 }
 
 

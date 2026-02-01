@@ -1,0 +1,9 @@
+sample_rate: 16000
+max_len: 64600
+transformer_hidden: 660
+pre_emphasis: 0.97
+eval_bs: 16
+cross_train_limit: 4096
+cross_eval_limit: 512
+cross_seed: 34
+default_ckpt: rawformer_se.pth

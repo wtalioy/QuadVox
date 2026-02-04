@@ -16,7 +16,7 @@ import time
 from typing import Generator
 from tqdm import tqdm
 from hyperpyyaml import load_hyperpyyaml
-from modelscope import snapshot_download
+from huggingface_hub import snapshot_download
 import torch
 from .frontend import CosyVoiceFrontEnd
 from .model import CosyVoiceModel, CosyVoice2Model, CosyVoice3Model
@@ -138,7 +138,7 @@ class CosyVoice:
 
 class CosyVoice2(CosyVoice):
 
-    def __init__(self, model_dir, load_jit=False, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1):
+    def __init__(self, model_dir, load_jit=False, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1, device="cuda"):
         self.model_dir = model_dir
         self.fp16 = fp16
         hyper_yaml_path = '{}/cosyvoice2.yaml'.format(model_dir)
@@ -157,7 +157,7 @@ class CosyVoice2(CosyVoice):
         if torch.cuda.is_available() is False and (load_jit is True or load_trt is True or load_vllm is True or fp16 is True):
             load_jit, load_trt, load_vllm, fp16 = False, False, False, False
             logging.warning('no cuda device, set load_jit/load_trt/load_vllm/fp16 to False')
-        self.model = CosyVoice2Model(configs['llm'], configs['flow'], configs['hift'], fp16)
+        self.model = CosyVoice2Model(configs['llm'], configs['flow'], configs['hift'], fp16, device)
         self.model.load('{}/llm.pt'.format(model_dir),
                         '{}/flow.pt'.format(model_dir),
                         '{}/hift.pt'.format(model_dir))
@@ -186,7 +186,7 @@ class CosyVoice2(CosyVoice):
 
 class CosyVoice3(CosyVoice2):
 
-    def __init__(self, model_dir, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1):
+    def __init__(self, model_dir, load_trt=False, load_vllm=False, fp16=False, trt_concurrent=1, device="cuda"):
         self.model_dir = model_dir
         self.fp16 = fp16
         hyper_yaml_path = '{}/cosyvoice3.yaml'.format(model_dir)
@@ -205,7 +205,7 @@ class CosyVoice3(CosyVoice2):
         if torch.cuda.is_available() is False and (load_trt is True or fp16 is True):
             load_trt, fp16 = False, False
             logging.warning('no cuda device, set load_trt/fp16 to False')
-        self.model = CosyVoice3Model(configs['llm'], configs['flow'], configs['hift'], fp16)
+        self.model = CosyVoice3Model(configs['llm'], configs['flow'], configs['hift'], fp16, device)
         self.model.load('{}/llm.pt'.format(model_dir),
                         '{}/flow.pt'.format(model_dir),
                         '{}/hift.pt'.format(model_dir))
@@ -222,7 +222,7 @@ class CosyVoice3(CosyVoice2):
 
 
 def AutoModel(repo_id, cache_dir=None, **kwargs):
-    kwargs['model_dir'] = snapshot_download(repo_id, cache_dir=cache_dir)
+    kwargs['model_dir'] = snapshot_download(repo_id, local_dir=cache_dir)
     if os.path.exists('{}/cosyvoice.yaml'.format(kwargs['model_dir'])):
         return CosyVoice(**kwargs)
     elif os.path.exists('{}/cosyvoice2.yaml'.format(kwargs['model_dir'])):

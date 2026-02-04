@@ -2,7 +2,6 @@ import sys
 sys.path.append('src/generation/models/tts/third_party/Matcha-TTS')
 import numpy as np
 from typing import Tuple
-from huggingface_hub import snapshot_download
 
 # Create module alias for cosyvoice imports BEFORE importing anything
 import importlib
@@ -29,7 +28,7 @@ class CosyVoice(BaseTTS):
             cache_dir="cache/" + repo_id.split("/")[-1],
             fp16=False,
             load_trt=False,
-            load_vllm=True
+            load_vllm=True,
         )
         
         self.sampling_rate = self.model.sample_rate

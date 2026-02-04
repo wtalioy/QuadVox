@@ -18,17 +18,18 @@ class BaseRawSubset:
         """Try to generate audio with given models. Returns True if successful, False otherwise."""
         text = item['text']
         audio_rel_path = item['audio']['real']
-        output_rel_path = audio_rel_path.replace("audio/real", "audio/fake")
+        output_rel_path = audio_rel_path.replace("audio/real", f"audio/{tts_model.model_name}" + (f"+{vc_model.model_name}" if vc_model else ""))
         audio_path = os.path.join(self.data_dir, audio_rel_path)
         output_path = os.path.join(self.data_dir, output_rel_path)
-        item['audio']['fake'] = {}
+        if "fake" not in item["audio"] or not isinstance(item["audio"]["fake"], dict):
+            item["audio"]["fake"] = {}
         
         try:
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
             if vc_model is None:
                 # TTS only
-                fake_audio, sample_rate = tts_model.infer(text, ref_audio=audio_path, language=language, **kwargs)
+                fake_audio, sample_rate = tts_model.infer(text, prompt_wav=audio_path, prompt_text=text, language=language, **kwargs)
                 sf.write(output_path, fake_audio, sample_rate)
                 model_name = tts_model.model_name
             else:
@@ -36,7 +37,14 @@ class BaseRawSubset:
                 fake_audio, sample_rate = tts_model.infer(text, language=language, **kwargs)
 
                 # Convert the voice of the corresponding sample to that of the real audio
-                sample_path = f"src/generation/samples/{language}.wav"
+                sample_path = kwargs.get("vc_source_sample") or f"src/generation/samples/{language}.wav"
+                if not os.path.exists(sample_path):
+                    fallback_sample = "src/generation/samples/en.wav"
+                    logger.warning(
+                        f"VC source sample not found at {sample_path}; "
+                        f"falling back to {fallback_sample}"
+                    )
+                    sample_path = fallback_sample
                 temp_vc_path = output_path.replace(".wav", "_temp_vc.wav")
                 vc_model.convert(sample_path, audio_path, temp_vc_path)
                 
@@ -65,7 +73,7 @@ class BaseRawSubset:
             logger.error(e)
             return False
 
-    def generate(self, tts_models: List[BaseTTS], vc_models: List[BaseVC] = [], language: str = "en", *args, **kwargs):
+    def generate(self, tts_models: List[BaseTTS], vc_models: List[BaseVC] = [], language: str = "en", alternate: bool = True, *args, **kwargs):
         output_dir = os.path.join(self.data_dir, "audio/fake")
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -103,34 +111,35 @@ class BaseRawSubset:
         
         # Process each item with round-robin distribution and fallback logic
         failed_items = []
-        for idx, item in enumerate(tqdm(meta_data, desc="Generating audio")):
-            if "fake" in item["audio"] and len(item["audio"]["fake"]) > 0:
-                continue
+        for idx, item in enumerate(tqdm(meta_data, desc="Generating audio", leave=False)):
+            # if "fake" in item["audio"] and len(item["audio"]["fake"]) > 0:
+            #     continue
 
-            success = False
-            
-            # Start with the assigned combination (round-robin distribution)
-            start_combo_idx = idx % len(all_combinations)
-            
-            # Try combinations starting from the assigned one, then cycle through others
-            for i in range(len(all_combinations)):
-                combo_idx = (start_combo_idx + i) % len(all_combinations)
-                tts_model, vc_model = all_combinations[combo_idx]
+            if alternate:
+                success = False
+                start_combo_idx = idx % len(all_combinations)
                 
-                combo_name = tts_model.model_name + (f" + {vc_model.model_name}" if vc_model else "")
-                if i == 0:
-                    logger.info(f"Processing item {idx+1} with assigned combination: {combo_name}")
-                else:
-                    logger.info(f"Trying fallback combination {i+1}: {combo_name}")
+                # Try combinations starting from the assigned one, then cycle through others
+                for i in range(len(all_combinations)):
+                    combo_idx = (start_combo_idx + i) % len(all_combinations)
+                    tts_model, vc_model = all_combinations[combo_idx]     
+                    combo_name = tts_model.model_name + (f" + {vc_model.model_name}" if vc_model else "")
+                    if i == 0:
+                        logger.info(f"Processing item {idx+1} with assigned combination: {combo_name}")
+                    else:
+                        logger.info(f"Trying fallback combination {i+1}: {combo_name}")
+                    
+                    if self._try_generate_audio(item, tts_model, vc_model, language=language, **kwargs):
+                        success = True
+                        break
                 
-                if self._try_generate_audio(item, tts_model, vc_model, language=language, **kwargs):
-                    success = True
-                    logger.info(f"Successfully generated audio for item {idx+1}")
-                    break
-            
-            if not success:
-                logger.warning(f"Failed to generate audio for item {idx+1} with all combinations: {item['text'][:50]}...")
-                failed_items.append(item)
+                if not success:
+                    logger.warning(f"Failed to generate audio for item {idx+1} with all combinations: {item['text'][:50]}...")
+                    failed_items.append(item)
+            else:
+                for tts_model, vc_model in all_combinations:
+                    if not self._try_generate_audio(item, tts_model, vc_model, language=language, **kwargs):
+                        raise RuntimeError(f"Failed to generate audio for item {idx+1} with combination: {tts_model.model_name} + {vc_model.model_name}")
 
         # Save updated metadata
         with open(self.meta_path, 'w', encoding='utf-8') as f:

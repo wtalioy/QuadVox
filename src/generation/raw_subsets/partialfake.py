@@ -84,12 +84,12 @@ class PartialFake(BaseRawSubset):
             
             if vc_model is None:
                 # TTS only
-                fake_audio, sample_rate = tts_model.infer(text, ref_audio=audio_path, language=language, **kwargs)
+                fake_audio, sample_rate = tts_model.infer(text, prompt_wav=audio_path, language=language, **kwargs)
                 fake_audio = librosa.resample(fake_audio, orig_sr=sample_rate, target_sr=self.sample_rate)
                 model_name = tts_model.model_name
             else:
                 # TTS + VC
-                fake_audio, sample_rate = tts_model.infer(text, language=language, **kwargs)
+                fake_audio, sample_rate = tts_model.infer(text, prompt_wav=audio_path, language=language, **kwargs)
 
                 # Convert the voice of the corresponding sample to that of the real audio
                 sample_path = f"src/generation/samples/{language}.wav"
@@ -127,7 +127,7 @@ class PartialFake(BaseRawSubset):
             logger.error(e)
             return False
 
-    def generate(self, tts_models: List[BaseTTS], vc_models: List[BaseVC] = [], language: str = "en", *args, **kwargs):
+    def generate(self, tts_models: List[BaseTTS], vc_models: List[BaseVC] = [], language: str = "en", alternate: bool = True, *args, **kwargs):
         with open(self.meta_path, 'r', encoding='utf-8') as f:
             meta_data = json.load(f)
 
@@ -163,30 +163,29 @@ class PartialFake(BaseRawSubset):
         failed_items = []
         for source_name, items in meta_data.items():
             for idx, item in enumerate(tqdm(items, desc=f"Generating partial fake audio for {source_name}")):
-                success = False
-                
-                # Start with the assigned combination (round-robin distribution)
-                start_combo_idx = idx % len(all_combinations)
-                
-                # Try combinations starting from the assigned one, then cycle through others
-                for i in range(len(all_combinations)):
-                    combo_idx = (start_combo_idx + i) % len(all_combinations)
-                    tts_model, vc_model = all_combinations[combo_idx]
+                if alternate:
+                    success = False
+                    start_combo_idx = idx % len(all_combinations)
+                    for i in range(len(all_combinations)):
+                        combo_idx = (start_combo_idx + i) % len(all_combinations)
+                        tts_model, vc_model = all_combinations[combo_idx]
+                        combo_name = tts_model.model_name + (f" + {vc_model.model_name}" if vc_model else "")
+                        if i == 0:
+                            logger.info(f"Processing item {idx+1} with assigned combination: {combo_name}")
+                        else:
+                            logger.info(f"Trying fallback combination {i+1}: {combo_name}")
+                        
+                        if self._try_generate_audio(item, tts_model, vc_model, idx=idx, source_name=source_name, language=language, **kwargs):
+                            success = True
+                            break
                     
-                    combo_name = tts_model.model_name + (f" + {vc_model.model_name}" if vc_model else "")
-                    if i == 0:
-                        logger.info(f"Processing item {idx+1} with assigned combination: {combo_name}")
-                    else:
-                        logger.info(f"Trying fallback combination {i+1}: {combo_name}")
-                    
-                    if self._try_generate_audio(item, tts_model, vc_model, idx=idx, source_name=source_name, language=language, **kwargs):
-                        success = True
-                        logger.info(f"Successfully generated audio for item {idx+1}")
-                        break
-                
-                if not success:
-                    logger.warning(f"Failed to generate audio for item {idx+1} with all combinations: {item['text'][:50]}...")
-                    failed_items.append(item)
+                    if not success:
+                        logger.warning(f"Failed to generate audio for item {idx+1} with all combinations: {item['text'][:50]}...")
+                        failed_items.append(item)
+                else:
+                    for tts_model, vc_model in all_combinations:
+                        if not self._try_generate_audio(item, tts_model, vc_model, idx=idx, source_name=source_name, language=language, **kwargs):
+                            raise RuntimeError(f"Failed to generate audio for item {idx+1} with combination: {tts_model.model_name} + {vc_model.model_name}")
 
         # Save updated metadata
         with open(self.meta_path, 'w', encoding='utf-8') as f:

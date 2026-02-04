@@ -3,10 +3,10 @@ from .src_indextts.infer import IndexTTS as IndexTTSModel
 from .base import BaseTTS
 
 class IndexTTS2(BaseTTS):
-    def __init__(self, model_dir="cache/IndexTTS-2", *args, **kwargs):
+    def __init__(self, model_dir="cache/IndexTTS-2", device=None, *args, **kwargs):
         self.model_name = "IndexTTS2"
         self.require_vc = False
-        self.model = IndexTTS2Model(model_dir=model_dir)
+        self.model = IndexTTS2Model(model_dir=model_dir, device=device)
         self.sample_rate = 22050
         self.emotion_ids = {
             "happy": 0,
@@ -41,10 +41,10 @@ class IndexTTS2(BaseTTS):
 
 
 class IndexTTS1_5(BaseTTS):
-    def __init__(self, model_dir="cache/IndexTTS-1.5", *args, **kwargs):
+    def __init__(self, model_dir="cache/IndexTTS-1.5", device=None, *args, **kwargs):
         self.model_name = "IndexTTS1.5"
         self.require_vc = False
-        self.model = IndexTTSModel(model_dir=model_dir)
+        self.model = IndexTTSModel(model_dir=model_dir, device=device)
         self.sample_rate = 24000
 
     def infer(self, text: str, prompt_wav: str, language="en", **kwargs):

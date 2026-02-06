@@ -25,6 +25,7 @@ class WhisperSpecRNet(SpecRNet):
         if freeze_encoder:
             for param in self.whisper_model.parameters():
                 param.requires_grad = False
+        self.to(self.device)
 
     def compute_whisper_features(self, x):
         specs = []
@@ -54,6 +55,7 @@ class WhisperMultiFrontSpecRNet(WhisperSpecRNet):
             **kwargs,
         )
         self.frontend = frontends.get_frontend(kwargs["frontend_algorithm"])
+        self.to(self.device)
 
     def forward(self, x):
         frontend_x = self.frontend(x)

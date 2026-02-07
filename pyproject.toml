@@ -235,7 +235,7 @@ dependencies = [
     "nbclient==0.10.2",
     "nbconvert==7.16.6",
     "nbformat==5.10.4",
-    "nemo-toolkit==2.4.0",
+    "nemo-toolkit[asr]",
     "nest-asyncio==1.6.0",
     "networkx==2.8.8",
     "ninja==1.13.0",

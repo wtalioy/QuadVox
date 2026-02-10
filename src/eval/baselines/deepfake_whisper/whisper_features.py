@@ -162,20 +162,6 @@ class WhisperSpecRNet(Baseline):
         labels = [Label.real] * len(real_data) + [Label.fake] * len(fake_data)
         return data, labels
 
-    def _predict(self, loader: DataLoader) -> Tuple[np.ndarray, np.ndarray]:
-        self.model.eval()
-        scores = []
-        labels = []
-        with torch.inference_mode():
-            for batch, label in loader:
-                batch = batch.to(self.device)
-                logits = self.model(batch)
-                logits = logits.view(-1)
-                probs = torch.sigmoid(logits)
-                scores.extend(probs.detach().cpu().numpy().tolist())
-                labels.extend(label.numpy().tolist())
-        return np.array(scores), np.array(labels)
-
     def _load_weights(self, checkpoint_path: Optional[str]):
         if not checkpoint_path:
             logger.warning(
@@ -189,22 +175,97 @@ class WhisperSpecRNet(Baseline):
             state = state["state_dict"]
         self.model.load_state_dict(state)
 
-    def _evaluate_eer(self, scores: np.ndarray, labels: np.ndarray) -> float:
+    @torch.no_grad()
+    def _evaluate_eer(self, eval_loader: DataLoader) -> float:
+        self.model.eval()
+        scores = []
+        labels = []
+        with tqdm(total=len(eval_loader), desc="Evaluating EER") as pbar:
+            for batch, label in eval_loader:
+                batch = batch.to(self.device)
+                logits = self.model(batch).view(-1)
+                probs = torch.sigmoid(logits)
+                scores.extend(probs.detach().cpu().numpy().tolist())
+                labels.extend(label.numpy().tolist())
+                pbar.update(1)
+        scores = np.array(scores)
+        labels = np.array(labels)
         _, eer, _, _ = df_metrics.calculate_eer(
             y=1 - labels,
             y_score=scores,
         )
         return float(eer)
 
-    def _evaluate_auroc(self, scores: np.ndarray, labels: np.ndarray) -> float:
+    @torch.no_grad()
+    def _evaluate_auroc(self, eval_loader: DataLoader) -> float:
+        self.model.eval()
+        scores = []
+        labels = []
+        with tqdm(total=len(eval_loader), desc="Evaluating AUROC") as pbar:
+            for batch, label in eval_loader:
+                batch = batch.to(self.device)
+                logits = self.model(batch).view(-1)
+                probs = torch.sigmoid(logits)
+                scores.extend(probs.detach().cpu().numpy().tolist())
+                labels.extend(label.numpy().tolist())
+                pbar.update(1)
+        scores = np.array(scores)
+        labels = np.array(labels)
         return float(roc_auc_score(labels, scores))
 
-    def _evaluate_prf(self, scores: np.ndarray, labels: np.ndarray) -> Tuple[float, float, float]:
+    @torch.no_grad()
+    def _evaluate_prf(self, eval_loader: DataLoader) -> Tuple[float, float, float]:
+        self.model.eval()
+        scores = []
+        labels = []
+        with tqdm(total=len(eval_loader), desc="Evaluating PRF") as pbar:
+            for batch, label in eval_loader:
+                batch = batch.to(self.device)
+                logits = self.model(batch).view(-1)
+                probs = torch.sigmoid(logits)
+                scores.extend(probs.detach().cpu().numpy().tolist())
+                labels.extend(label.numpy().tolist())
+                pbar.update(1)
+        scores = np.array(scores)
+        labels = np.array(labels)
         pred_label = (scores >= 0.5).astype(int)
         precision, recall, f1, _ = precision_recall_fscore_support(
             labels, pred_label, average="binary", beta=1.0
         )
         return float(precision), float(recall), float(f1)
+
+    @torch.no_grad()
+    def _evaluate_accuracy(self, eval_loader: DataLoader) -> float:
+        self.model.eval()
+        scores = []
+        labels = []
+        with tqdm(total=len(eval_loader), desc="Evaluating Accuracy") as pbar:
+            for batch, label in eval_loader:
+                batch = batch.to(self.device)
+                logits = self.model(batch).view(-1)
+                probs = torch.sigmoid(logits)
+                scores.extend(probs.detach().cpu().numpy().tolist())
+                labels.extend(label.numpy().tolist())
+                pbar.update(1)
+        scores = np.array(scores)
+        labels = np.array(labels)
+        pred_label = (scores >= 0.5).astype(int)
+        return float((pred_label == labels).mean())
+
+    @torch.no_grad()
+    def _evaluate_precision(self, eval_loader: DataLoader) -> float:
+        precision, _, _ = self._evaluate_prf(eval_loader)
+        return float(precision)
+
+    @torch.no_grad()
+    def _evaluate_recall(self, eval_loader: DataLoader) -> float:
+        _, recall, _ = self._evaluate_prf(eval_loader)
+        return float(recall)
+
+    @torch.no_grad()
+    def _evaluate_f1(self, eval_loader: DataLoader) -> float:
+        _, _, f1 = self._evaluate_prf(eval_loader)
+        return float(f1)
 
     def evaluate(
         self,
@@ -216,49 +277,26 @@ class WhisperSpecRNet(Baseline):
         dataset_name: Optional[str] = None,
         **kwargs,
     ) -> dict:
-        if in_domain and dataset_name is not None:
-            ckpt_path = self._get_ckpt_path(dataset_name)
-            self._load_weights(ckpt_path)
+        if in_domain:
+            if dataset_name is None:
+                raise ValueError("dataset_name is required for in_domain evaluation")
+            self._load_weights(self._get_ckpt_path(dataset_name))
         else:
-            dataset_name = "default"
-            ckpt_path = (
-                kwargs.get("ckpt_path")
-                or self.checkpoint_path
-                or self._get_ckpt_path(dataset_name)
-            )
-            if not ckpt_path or not os.path.exists(ckpt_path):
-                logger.info(
-                    f"No default checkpoint for {self.name}; training on ASVspoof2019 LA"
-                )
-                train_real, train_fake = self._load_cross_dataset(
-                    split="train", limit=8192, shuffle=True
-                )
-                train_data, train_labels = self._aggregate_data(train_real, train_fake)
-                eval_real, eval_fake = self._load_cross_dataset(
-                    split="validation", limit=768, shuffle=False
-                )
-                eval_data, eval_labels = self._aggregate_data(eval_real, eval_fake)
-                self.train(
-                    train_data=train_data,
-                    train_labels=train_labels,
-                    eval_data=eval_data,
-                    eval_labels=eval_labels,
-                    dataset_name=dataset_name,
-                    sr=sr,
-                )
+            ckpt_path = kwargs.get("ckpt_path") or self.checkpoint_path
             self._load_weights(ckpt_path)
+            if Label.real != 1:
+                labels = [1 - label for label in labels]
 
-        loader = self._build_loader(
+        eval_loader = self._build_loader(
             data, labels, sr, shuffle=False, drop_last=False, batch_size=16
         )
-        scores, labels_np = self._predict(loader)
 
         results = {}
         for metric in metrics:
             if metric not in self.supported_metrics:
                 raise ValueError(f"Unsupported metric: {metric}")
             func = getattr(self, f"_evaluate_{metric}")
-            metric_rst = func(scores, labels_np)
+            metric_rst = func(eval_loader)
             results[metric] = metric_rst
         return results
 

@@ -6,7 +6,7 @@ class Parakeet:
         self.model = ASRModel.from_pretrained(model_name="nvidia/parakeet-tdt-0.6b-v3", map_location=device)
 
     def transcribe(self, audio_paths: List[str], language: str = "en") -> List[str]:
-        return [output[0] for output in self.model.transcribe(audio_paths)]
+        return self.model.transcribe(audio_paths)[0]
 
     def get_word_timestamps(self, audio_paths: List[str]) -> List[str]:
         outputs = self.model.transcribe(audio_paths, timestamps=True)

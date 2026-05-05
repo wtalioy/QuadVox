@@ -1,4 +1,4 @@
-# QuadVox: A Large-Scale Fine-Grained Benchmark with Relative Audio Proximity Test for Robust Audio Deepfake Detection
+# QuadVox: A Large-Scale Fine-Grained Benchmark for Robust Audio Deepfake Detection
 [![Hugging Face%20-%20QuadVoxBench](https://img.shields.io/badge/🤗%20Hugging%20Face%20-%20QuadVoxBench-blue)](https://huggingface.co/datasets/Lioy/QuadVoxBench)
 
 QuadVox is a large-scale benchmark (392+ hours) designed to evaluate audio deepfake detection across diverse and fine-grained variations. It is structured in four key aspects: **Speech Style**, **Emotional Prosody**, **Acoustic Environment**, and **Manipulation Type**.

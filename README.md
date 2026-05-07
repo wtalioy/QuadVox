@@ -340,19 +340,6 @@ Example output:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Citation
-
-If you use QuadVox in your research, please cite:
-
-```
-@inproceedings{quadvox2026,
-  title={QuadVox: A Large-Scale Fine-Grained Benchmark with Relative Audio Proximity Test for Robust Audio Deepfake Detection},
-  author={Ruiming Wang, et al.},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year={2026}
-}
-```
-
 ------
 
 <div align="center">
